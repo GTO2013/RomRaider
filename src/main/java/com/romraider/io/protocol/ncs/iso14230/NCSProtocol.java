@@ -52,6 +52,7 @@ public final class NCSProtocol implements ProtocolNCS {
     public static final byte WRITE_ADDRESS_COMMAND = (byte) 0xB8;
     public static final byte WRITE_ADDRESS_RESPONSE = (byte) 0xF8;
     public static final byte FASTINIT_COMMAND = (byte) 0x81;
+    public static final byte STOP_COMMAND = (byte) 0x82;
     public static final byte FASTINIT_RESPONSE = (byte) 0xC1;
     public static final byte ECU_ID_SID = (byte) 0x1A;
     public static final byte OPTION_81 = (byte) 0x81;
@@ -76,13 +77,22 @@ public final class NCSProtocol implements ProtocolNCS {
                 FASTINIT_COMMAND, false, new byte[]{});
         return request;
     }
-
+       
     // not implemented
     @Override
     public byte[] constructEcuInitRequest(Module module) {
         return null;
     }
-
+    
+    @Override
+    public byte[] constructEcuStopRequest(Module module) {
+        checkNotNull(module, "module");
+        NCSProtocol.module = module;
+        final byte[] request = buildRequest(
+                STOP_COMMAND, false, new byte[]{});
+        return request;
+    }
+    
     @Override
     public byte[] constructEcuIdRequest(Module module) {
         checkNotNull(module, "module");

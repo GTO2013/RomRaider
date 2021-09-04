@@ -52,7 +52,12 @@ public final class NCSLoggerProtocol implements LoggerProtocolNCS {
     public byte[] constructEcuInitRequest(Module module) {
         return protocol.constructEcuInitRequest(module);
     }
-
+    
+	@Override
+	public byte[] constructEcuStopRequest(Module module) {
+		return protocol.constructEcuStopRequest(module);
+	}
+	
     @Override
     public byte[] constructEcuIdRequest(Module module) {
         return protocol.constructEcuIdRequest(module);
@@ -218,4 +223,6 @@ public final class NCSLoggerProtocol implements LoggerProtocolNCS {
         }
         return addresses;
     }
+
+
 }

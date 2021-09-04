@@ -29,6 +29,8 @@ import com.romraider.logger.ecu.definition.Module;
 public interface LoggerProtocolNCS extends LoggerProtocol {
 
     byte[] constructEcuFastInitRequest(Module module);
+    
+    byte[] constructEcuStopRequest(Module module);
 
     byte[] constructReadSidPidRequest(Module module, byte sid, byte[] pid);
 

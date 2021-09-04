@@ -43,29 +43,48 @@ public final class J2534ConnectionISO14230 implements ConnectionManager {
     private int channelId;
     private int deviceId;
     private int msgId;
-    private byte[] lastResponse;
-    private long timeout;
+    private byte[] lastResponse;   
     private boolean commsStarted;
-    private final byte[] startReq = {
-            (byte) 0x81, (byte) 0x10, (byte) 0xFC, (byte) 0x81, (byte) 0x0E};
-    private final byte[] stopReq = {
-            (byte) 0x81, (byte) 0x10, (byte) 0xFC, (byte) 0x82, (byte) 0x0F};
+    
+    private ConnectionProperties connectionProperties;
+    private String library;
+    
+    private byte[] startReq;
+    private byte[] stopReq;
 
+    /*
+    private byte[] startReq = {
+            (byte) 0x81, (byte) 0x10, (byte) 0xFC, (byte) 0x81, (byte) 0x0E};
+    private byte[] stopReq = {
+            (byte) 0x81, (byte) 0x10, (byte) 0xFC, (byte) 0x82, (byte) 0x0F};
+*/
+    
     public J2534ConnectionISO14230(ConnectionProperties connectionProperties, String library) {
         checkNotNull(connectionProperties, "connectionProperties");
         deviceId = -1;
         commsStarted = false;
-        timeout = (long)connectionProperties.getConnectTimeout();
-        initJ2534(connectionProperties, library);
-        LOGGER.info("J2534/ISO14230 connection initialised");
+       // timeout = (long)connectionProperties.getConnectTimeout();
+        this.connectionProperties = connectionProperties;
+        this.library = library;
+        
+        //initJ2534(connectionProperties, library);
+        //LOGGER.info("J2534/ISO14230 connection initialised");
     }
-
+    
+    
+    //This needs to be set before any connection can be established!
+    public void setStartStopRequest(byte[] startRequest, byte[] stopRequest) {
+    	this.startReq = startRequest;
+    	this.stopReq = stopRequest;
+    }
+    
     // Send request and wait for response with known length
     public void send(byte[] request, byte[] response, PollingState pollState) {
         checkNotNull(request, "request");
         checkNotNull(response, "response");
         checkNotNull(pollState, "pollState");
-
+        long timeout = connectionProperties.getConnectTimeout();
+        
         if (pollState.getCurrentState() == PollingState.State.STATE_0 &&
                 pollState.getLastState() == PollingState.State.STATE_1) {
             clearLine();
@@ -94,6 +113,7 @@ public final class J2534ConnectionISO14230 implements ConnectionManager {
 
     // Send request and wait specified time for response with unknown length
     public byte[] send(byte[] request) {
+    	long timeout = connectionProperties.getConnectTimeout();
         checkNotNull(request, "request");
         api.writeMsg(channelId, request, timeout, TxFlags.NO_FLAGS);
         return api.readMsg(channelId, 1, timeout);
@@ -157,7 +177,7 @@ public final class J2534ConnectionISO14230 implements ConnectionManager {
         closeDevice();
     }
 
-    private void initJ2534(ConnectionProperties connectionProperties, String library) {
+    public void initJ2534() {
         try {
             api = new J2534Impl(Protocol.ISO14230, library);
             deviceId = api.open();
@@ -249,7 +269,12 @@ public final class J2534ConnectionISO14230 implements ConnectionManager {
         }
     }
 
-    private void fastInit() {
+    private void fastInit() {  	
+    	if(startReq == null) {
+            LOGGER.error("Start Request was not set, failed to fastInit!");
+            return;
+    	}
+    	
         final byte[] timing = api.fastInit(channelId, startReq);
         LOGGER.debug(String.format(
                 "J2534/ISO14230 Fast Init: deviceId:%d, channelId:%d, timing:%s",
@@ -257,6 +282,11 @@ public final class J2534ConnectionISO14230 implements ConnectionManager {
     }
 
     private void stopComms() {
+    	if(stopReq == null) {
+            LOGGER.error("Stop Request was not set, failed to stopComms!");
+            return;
+    	}
+    	
         final byte[] response = send(stopReq);
         LOGGER.debug(String.format("Stop comms Response = %s", asHex(response)));
     }

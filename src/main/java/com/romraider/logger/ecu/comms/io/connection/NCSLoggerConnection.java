@@ -34,6 +34,7 @@ import com.romraider.Settings;
 import com.romraider.util.ResourceUtil;
 import com.romraider.util.SettingsManager;
 import com.romraider.io.connection.ConnectionManager;
+import com.romraider.io.j2534.api.J2534ConnectionISO14230;
 import com.romraider.io.protocol.ProtocolFactory;
 import com.romraider.logger.ecu.comms.io.protocol.LoggerProtocolNCS;
 import com.romraider.logger.ecu.comms.manager.PollingState;
@@ -78,6 +79,15 @@ public final class NCSLoggerConnection implements LoggerConnection {
     // Build an init string similar to the SSM version so the logger definition
     // can reference supported parameters with ecubyte/bit attributes. 
     public void ecuInit(EcuInitCallback callback, Module module) {
+    	
+    	if(manager instanceof J2534ConnectionISO14230) {
+    		J2534ConnectionISO14230 m = (J2534ConnectionISO14230)manager;
+    		m.setStartStopRequest(protocol.constructEcuFastInitRequest(module),
+    				protocol.constructEcuStopRequest(module));
+    		m.initJ2534();
+    		LOGGER.info("J2534/ISO14230 connection initialised");
+    	}
+    	
         final byte[] initResponse = new byte[422];
         byte[] request = protocol.constructEcuIdRequest(module);
         LOGGER.debug(String.format("%s ID Request  ---> %s",
