@@ -1,6 +1,6 @@
 /*
  * RomRaider Open-Source Tuning, Logging and Reflashing
- * Copyright (C) 2006-2018 RomRaider.com
+ * Copyright (C) 2006-2021 RomRaider.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -269,7 +269,8 @@ public final class J2534ConnectionISO14230 implements ConnectionManager {
         }
     }
 
-    private void fastInit() {  	
+    private void fastInit() {
+    	
     	if(startReq == null) {
             LOGGER.error("Start Request was not set, failed to fastInit!");
             return;
