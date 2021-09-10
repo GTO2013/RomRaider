@@ -1,6 +1,6 @@
 /*
  * RomRaider Open-Source Tuning, Logging and Reflashing
- * Copyright (C) 2006-2019 RomRaider.com
+ * Copyright (C) 2006-2021 RomRaider.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -136,15 +136,17 @@ public final class EcuDataLoaderImpl implements EcuDataLoader {
             } finally {
                 inputStream.close();
             }
-        } catch (FileNotFoundException fnfe) {
-            throw new ConfigurationException(MessageFormat.format(
-                    rb.getString("LOGFNF"), loggerConfigFilePath));
+        } 
+        
+        /*catch (FileNotFoundException fnfe) {
+            throw new ConfigurationException(fnfe);
         } catch (SAXParseException spe) {
             // catch general parsing exception - enough people don't
             // unzip the defs that a better error message is in order
-            throw new ConfigurationException(MessageFormat.format(
-                    rb.getString("UNZIPLOG"), loggerConfigFilePath));
-        } catch (Exception e) {
+            System.out.println(spe.toString());
+            throw new ConfigurationException(spe);
+
+        } */catch (Exception e) {
             throw new ConfigurationException(e);
         }
         
