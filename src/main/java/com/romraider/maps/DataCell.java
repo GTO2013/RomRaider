@@ -57,6 +57,9 @@ public class DataCell implements Serializable  {
     private String staticText = null;
     private Rom rom;
 
+    private boolean modified = false;
+    private boolean trackModified = false;
+
     //Index within table
     private int index;
 
@@ -81,6 +84,7 @@ public class DataCell implements Serializable  {
         updateBinValueFromMemory();
         this.originalValue = this.binValue;
         registerDataCell(this);
+        trackModified = true;
     }
 
     public void setTable(Table t) {
@@ -371,7 +375,22 @@ public class DataCell implements Serializable  {
             calcValueRange();
 
         this.binValue = getValueFromMemory();
+        updateModifiedState();
         updateView();
+    }
+
+    private void updateModifiedState() {
+        if (!trackModified) return;
+
+        boolean isModified = binValue != originalValue;
+        if (isModified != modified) {
+            modified = isModified;
+            table.cellModifiedChanged(isModified);
+        }
+    }
+
+    public boolean isModified() {
+        return modified;
     }
 
     public void setDataView(DataCellView v) {
@@ -503,6 +522,7 @@ public class DataCell implements Serializable  {
 
         // set bin.
         binValue = checkedValue;
+        updateModifiedState();
         saveBinValueInFile();
         updateView();
     }
@@ -555,6 +575,7 @@ public class DataCell implements Serializable  {
 
     public void setOriginalValue(double originalValue) {
         this.originalValue = originalValue;
+        updateModifiedState();
     }
 
     public int getBitMask() {

@@ -95,6 +95,11 @@ public class Table2D extends Table {
     }
 
     @Override
+    public boolean isModified() {
+        return super.isModified() || axis.isModified();
+    }
+
+    @Override
     public String getLogParamString() {
         StringBuilder sb = new StringBuilder();
         sb.append(axis.getLogParamString()+ ", ");

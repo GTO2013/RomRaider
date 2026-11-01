@@ -27,6 +27,8 @@ import javax.naming.NameNotFoundException;
 import org.apache.log4j.Logger;
 
 import com.romraider.Settings;
+import com.romraider.editor.ecu.ECUEditor;
+import com.romraider.editor.ecu.ECUEditorManager;
 import com.romraider.swing.TableFrame;
 import com.romraider.util.ByteUtil;
 import com.romraider.util.JEPUtil;
@@ -74,6 +76,8 @@ public abstract class Table implements Serializable, Comparable<Table> {
 
     protected Rom rom;
     protected boolean staticDataTable = false;
+
+    protected int modifiedCells = 0;
     private Table compareTable = null;
     protected Settings.DataType compareValueType = Settings.DataType.BIN;
 
@@ -158,6 +162,7 @@ public abstract class Table implements Serializable, Comparable<Table> {
             this.ramOffset = rom.getRomID().getRamOffset();
         }
 
+        modifiedCells = 0;
         for (int i = 0; i < data.length; i++) {
             data[i] = new DataCell(this, i, rom);
         }
@@ -477,6 +482,21 @@ public abstract class Table implements Serializable, Comparable<Table> {
         for (DataCell cell : data) {
             cell.setRevertPoint();
         }
+    }
+
+    void cellModifiedChanged(boolean cellModified) {
+        int before = modifiedCells;
+        modifiedCells += cellModified ? 1 : -1;
+
+        if ((before == 0) != (modifiedCells == 0)) {
+            ECUEditor editor = ECUEditorManager.getECUEditorWithoutCreation();
+            if (editor != null) editor.getRomFilterPanel().tableModifiedStateChanged();
+        }
+    }
+
+    // Values differ from the load or revert point
+    public boolean isModified() {
+        return modifiedCells > 0;
     }
 
     public void undoAll() throws UserLevelException {

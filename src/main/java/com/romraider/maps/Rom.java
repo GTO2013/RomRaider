@@ -132,18 +132,20 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
     }
     
     public List<TreePath> refreshDisplayedTables() {
-    	return refreshDisplayedTables(null);
+    	return refreshDisplayedTables(null, false);
     }
     
     /*
-     * Refreshes the list of tables for a rom. Takes a regex (or null) as input for filtering.
+     * Refreshes the list of tables for a rom. Takes a name filter (or null) and whether
+     * only modified tables are shown.
      * Outputs a list of paths that should be expanded based on the filter.
      */
-    public List<TreePath> refreshDisplayedTables(String filterText) {
+    public List<TreePath> refreshDisplayedTables(String filterText, boolean modifiedOnly) {
         super.removeAllChildren();
 
         Settings settings = SettingsManager.getSettings();
-        boolean shouldFilter = filterText != null && !filterText.isEmpty();
+        boolean filterByName = filterText != null && !filterText.isEmpty();
+        boolean shouldFilter = filterByName || modifiedOnly;
         boolean anyTablesAdded = false;
 
         // Collect TreePaths for expansion
@@ -152,8 +154,8 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
         for (TableTreeNode tableTreeNode : tableNodes.values()) {
             Table table = tableTreeNode.getTable();
 
-            boolean addToTree = true;
-            if (shouldFilter) {
+            boolean addToTree = !modifiedOnly || table.isModified();
+            if (addToTree && filterByName) {
                 try {
                     addToTree = table.getName().toLowerCase().contains(filterText.toLowerCase());
                 } catch (PatternSyntaxException exception) {

@@ -122,6 +122,7 @@ public class ECUEditor extends AbstractFrame {
             rb.getString("OPENIMAGES"));
     private final RomTree imageList = new RomTree(imageRoot);
     private final MDIDesktopPane rightPanel = new MDIDesktopPane();
+    private final RomFilterPanel romFilterPanel = new RomFilterPanel(imageRoot, imageList);
     private final JProgressPane statusPanel = new JProgressPane();
     private final JScrollPane leftScrollPane;
     private final JScrollPane rightScrollPane;
@@ -156,7 +157,7 @@ public class ECUEditor extends AbstractFrame {
 
         JPanel leftAreaWithFilterBox = new JPanel(new BorderLayout());
         leftAreaWithFilterBox.add(leftScrollPane, BorderLayout.CENTER);
-        leftAreaWithFilterBox.add(new RomFilterPanel(imageRoot, imageList), BorderLayout.SOUTH);
+        leftAreaWithFilterBox.add(romFilterPanel, BorderLayout.SOUTH);
         
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
         		leftAreaWithFilterBox, rightScrollPane);
@@ -692,6 +693,10 @@ public class ECUEditor extends AbstractFrame {
 
     public RomTreeRootNode getImageRoot() {
         return imageRoot;
+    }
+
+    public RomFilterPanel getRomFilterPanel() {
+        return romFilterPanel;
     }
 
     public RomTree getImageList() {

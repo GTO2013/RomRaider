@@ -183,6 +183,7 @@ public class Table3D extends Table {
             throw new ArrayIndexOutOfBoundsException();
         }
 
+        modifiedCells = 0;
         int offset = 0;
         int iMax = swapXY ? xAxis.getDataSize() : yAxis.getDataSize();
         int jMax = swapXY ? yAxis.getDataSize() : xAxis.getDataSize();
@@ -318,6 +319,11 @@ public class Table3D extends Table {
         }
         yAxis.undoAll();
         xAxis.undoAll();
+    }
+
+    @Override
+    public boolean isModified() {
+        return super.isModified() || xAxis.isModified() || yAxis.isModified();
     }
 
     @Override
