@@ -250,11 +250,7 @@ public class XDFConversionLayer extends ConversionLayer {
                                 signedLocal = false;
                             }
 
-                            if ((flags & 0x02) > 0) {
-                                lsbFirstLocal = false;
-                            } else {
-                                lsbFirstLocal = true;
-                            }
+                            lsbFirstLocal = (flags & 0x02) > 0;
 
                             if ((flags & 0x04) > 0) {
                                 targetTable.setAttribute("swapxy", "true");
@@ -272,7 +268,7 @@ public class XDFConversionLayer extends ConversionLayer {
                     }
 
                     targetTable.setAttribute("storagetype", (signedLocal ? "" : "u") + "int" + sizeBits);
-                    targetTable.setAttribute("endian", lsbFirstLocal ? "big" : "little");
+                    targetTable.setAttribute("endian", lsbFirstLocal ? "little" : "big");
                 } else if (!hasEmbedInfo && n.getNodeName().equalsIgnoreCase("math")) {
                     String formula = n.getAttributes().getNamedItem("equation").getNodeValue();
                     formula = formula.replace("X", "x").replace(",", ".");

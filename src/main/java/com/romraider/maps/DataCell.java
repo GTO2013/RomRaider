@@ -514,6 +514,11 @@ public class DataCell implements Serializable  {
 
         double checkedValue = newBinValue;
 
+        // Integer cells are stored whole, round interpolated values instead of cutting them off
+        if (table.getStorageType() != Settings.STORAGE_TYPE_FLOAT) {
+            checkedValue = Math.round(checkedValue);
+        }
+
         // make sure it's in range
         if (checkedValue < minAllowedBin) {
             checkedValue = minAllowedBin;

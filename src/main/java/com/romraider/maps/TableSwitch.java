@@ -27,6 +27,7 @@ import static javax.swing.JOptionPane.showMessageDialog;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 
+import com.romraider.util.Interaction;
 import com.romraider.util.ResourceUtil;
 
 public class TableSwitch extends Table1D {
@@ -59,7 +60,7 @@ public class TableSwitch extends Table1D {
 	        String message = MessageFormat.format(
 	                rb.getString("CHKSUMINVALID"), result, super.getName());
 	        if (result > 0) {
-	            showMessageDialog(null,
+	            if (Interaction.showDialog(message)) showMessageDialog(null,
 	                    message,
 	                    rb.getString("CHKSUMSFAILED"),
 	                    WARNING_MESSAGE);
@@ -67,7 +68,7 @@ public class TableSwitch extends Table1D {
 	        }
 	        else if (result == -1){
 	            message = rb.getString("ALLDISABLED");
-	            showMessageDialog(null,
+	            if (Interaction.showDialog(message)) showMessageDialog(null,
 	                    message,
 	                    rb.getString("CHKSUMSTATUS"),
 	                    INFORMATION_MESSAGE);

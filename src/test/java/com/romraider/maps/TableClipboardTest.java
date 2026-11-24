@@ -27,6 +27,9 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.romraider.Settings;
+import com.romraider.util.NumberUtil;
+
 // Clipboard text of tables and selections, written and pasted back
 public class TableClipboardTest {
     private static final String X = "<scaling expression=\"x\" to_byte=\"x\" format=\"#\"/>";
@@ -48,7 +51,24 @@ public class TableClipboardTest {
                 curve("Curve", 0x10, 0x14) + curve("OtherCurve", 0x30, 0x34)
                 + map("Map", 0x40) + map("OtherMap", 0x60)
                 + "<table name=\"Half\" type=\"1D\" storageaddress=\"0x20\" storagetype=\"uint8\">"
-                + "<scaling expression=\"x*0.5\" to_byte=\"x/0.5\" format=\"#\"/></table>"), bin);
+                + "<scaling expression=\"x*0.5\" to_byte=\"x/0.5\" format=\"#\"/></table>"
+                + "<table name=\"Gears\" type=\"2D\" storageaddress=\"0x70\" storagetype=\"uint8\" sizey=\"2\">" + X
+                + "<table type=\"Static Y Axis\" name=\"Gear\" sizey=\"2\"><data>1st</data><data>2nd</data></table>"
+                + "</table>"), bin);
+    }
+
+    @Test
+    public void staticAxesAreCopiedAsTheirLabelsAndKeptOnPaste() throws Exception {
+        Table2D gears = (Table2D) table("Gears");
+        gears.getData()[1].setBinValue(6);
+        String header = gears.getSettings().getTable2DHeader();
+        assertEquals("1st\t2nd" + Settings.NEW_LINE + NumberUtil.stringValue(0) + "\t" + NumberUtil.stringValue(6),
+                gears.getTableAsString().toString());
+
+        gears.paste(header + "1st\t2nd" + Settings.NEW_LINE + "7\t8");
+        assertEquals(7, bin[0x70]);
+        assertEquals(8, bin[0x71]);
+        assertEquals("1st", gears.getAxis().getData()[0].getStaticText());
     }
 
     private static String curve(String name, int axis, int data) {

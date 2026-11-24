@@ -60,9 +60,12 @@ public final class RomFixture {
 
     // Loads the <rom> of a whole definition whose id matches the image
     public static Rom loadDefinition(String roms, byte[] bin) throws Exception {
+        return load(DocumentBuilderFactory.newInstance().newDocumentBuilder()
+                .parse(new InputSource(new StringReader(roms))), bin);
+    }
+
+    public static Rom load(Document doc, byte[] bin) throws Exception {
         SettingsManager.setTesting(true);
-        Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder()
-                .parse(new InputSource(new StringReader(roms)));
         Node romNode = new DOMRomUnmarshaller().checkDefinitionMatch(doc.getDocumentElement(), bin);
         if (romNode == null) throw new IllegalArgumentException("No rom of the definition matches the image");
 

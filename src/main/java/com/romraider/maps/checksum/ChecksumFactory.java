@@ -32,6 +32,7 @@ import java.util.ResourceBundle;
 import org.apache.log4j.Logger;
 
 import com.romraider.maps.Rom;
+import com.romraider.util.Interaction;
 import com.romraider.util.ResourceUtil;
 
 /**
@@ -97,7 +98,7 @@ public final class ChecksumFactory {
             }
             
             e.printStackTrace();
-            showMessageDialog(null,
+            if (Interaction.showDialog(message)) showMessageDialog(null,
                     message,
                     e.toString(), ERROR_MESSAGE);
         }

@@ -43,7 +43,7 @@ public abstract class Table implements Serializable, Comparable<Table> {
     private static final long serialVersionUID = 6559256489995552645L;
     protected static final Logger LOGGER = Logger.getLogger(Table.class);
     protected static final String ST_DELIMITER = "\t\n\r\f";
-    protected static Settings.Endian memModelEndian;
+    protected Settings.Endian memModelEndian;
 
     protected TableView tableView;
     protected TableFrame tableFrame;

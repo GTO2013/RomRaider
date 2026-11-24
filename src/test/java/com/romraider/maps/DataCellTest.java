@@ -19,8 +19,11 @@
 
 package com.romraider.maps;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +48,9 @@ public class DataCellTest {
             + "<table name=\"Checksum Fix 2\" type=\"1D\" storageaddress=\"0x2D\" storagetype=\"uint8\">" + X + "</table>"
             + "<table name=\"Expert\" type=\"1D\" storageaddress=\"0x2E\" storagetype=\"uint8\" userlevel=\"5\">" + X + "</table>"
             + "<table name=\"Tenths\" type=\"1D\" storageaddress=\"0x30\" storagetype=\"uint8\">"
-            + "<scaling expression=\"x/10\" to_byte=\"x*10\" format=\"0.0\" coarseincrement=\"0.01\"/></table>";
+            + "<scaling expression=\"x/10\" to_byte=\"x*10\" format=\"0.0\" coarseincrement=\"0.01\"/></table>"
+            + "<table name=\"Movi\" type=\"1D\" storageaddress=\"0x34\" storagetype=\"movi20\">" + X + "</table>"
+            + "<table name=\"MoviS\" type=\"1D\" storageaddress=\"0x38\" storagetype=\"movi20s\">" + X + "</table>";
 
     private byte[] bin;
     private Rom rom;
@@ -66,6 +71,8 @@ public class DataCellTest {
         bin[0x2C] = 5;
         bin[0x2D] = 5;
         bin[0x2E] = 5;
+        // MOVI20 #-2,R10 and MOVI20S #0x1000,R11
+        System.arraycopy(new byte[] {0x0A, (byte) 0xF0, (byte) 0xFF, (byte) 0xFE, 0x0B, 0x01, 0x00, 0x10}, 0, bin, 0x33, 8);
         rom = RomFixture.load(RomFixture.rom("CELLS", 64, TABLES), bin);
     }
 
@@ -188,6 +195,15 @@ public class DataCellTest {
     }
 
     @Test
+    public void movi20KeepsTheInstructionAroundTheImmediate() throws Exception {
+        assertEquals(-2, cell("Movi").getBinValue(), 0);
+        assertEquals(0x1000, cell("MoviS").getBinValue(), 0);
+        cell("Movi").setBinValue(0x12345);
+        cell("MoviS").setBinValue(0x23400);
+        assertArrayEquals(new byte[] {0x0A, 0x10, 0x23, 0x45, 0x0B, 0x01, 0x02, 0x34}, Arrays.copyOfRange(bin, 0x33, 0x3B));
+    }
+
+    @Test
     public void memModelSetsTheFloatByteOrder() throws Exception {
         byte[] little = RomFixture.image(64);
         System.arraycopy(new byte[] {0, 0, (byte) 0xC0, 0x3F}, 0, little, 0x20, 4);
@@ -195,11 +211,10 @@ public class DataCellTest {
                 "<table name=\"Float\" type=\"1D\" storageaddress=\"0x20\" storagetype=\"float\">" + X + "</table>")
                 .replace("</romid>", "<memmodel endian=\"little\">TEST</memmodel></romid>");
         Table table = RomFixture.load(rom, little).getTableByName("Float");
-        try {
-            assertEquals(1.5, table.getData()[0].getBinValue(), 0);
-        } finally {
-            // The memmodel byte order is shared by all tables
-            table.setMemModelEndian(null);
-        }
+        assertEquals(1.5, table.getData()[0].getBinValue(), 0);
+
+        // An image opened next, without a memmodel, keeps its own byte order
+        Rom other = RomFixture.load(RomFixture.rom("CELLS", 64, TABLES), bin);
+        assertEquals(1.5, other.getTableByName("Floats").getData()[0].getBinValue(), 0);
     }
 }

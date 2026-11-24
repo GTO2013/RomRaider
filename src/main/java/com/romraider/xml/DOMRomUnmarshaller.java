@@ -187,7 +187,8 @@ public final class DOMRomUnmarshaller {
                 } else if (n.getNodeName().equalsIgnoreCase("checksum")) {
                     rom.getRomID().setChecksum(unmarshallAttribute(n, "type", ""));
                     checksumManager = unmarshallChecksum(rom, n);
-                    rom.addChecksumManager(checksumManager);
+                    // Null if the type is unknown, the factory has told the user
+                    if (checksumManager != null) rom.addChecksumManager(checksumManager);
                 }
                 else if (n.getNodeType() == ELEMENT_NODE
                             && n.getNodeName().equalsIgnoreCase("Simulation")) {

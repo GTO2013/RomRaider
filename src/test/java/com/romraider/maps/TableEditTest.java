@@ -27,6 +27,9 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.romraider.Settings;
+import com.romraider.util.SettingsManager;
+
 // Edits on tables: selections, revert, interpolation, 3D layout and lookups
 public class TableEditTest {
     private static final String X = "<scaling expression=\"x\" to_byte=\"x\" format=\"#\" coarseincrement=\"1\"/>";
@@ -109,6 +112,74 @@ public class TableEditTest {
         curve.undoAll();
         assertEquals(5, curve.getData()[0].getBinValue(), 0);
         assertEquals(50, curve.getAxis().getData()[3].getBinValue(), 0);
+
+        map().get3dData()[2][1].setBinValue(1);
+        map().getYAxis().getData()[0].setBinValue(1);
+        map().undoAll();
+        assertEquals(6, map().get3dData()[2][1].getBinValue(), 0);
+        assertEquals(0, map().getYAxis().getData()[0].getBinValue(), 0);
+        assertFalse(map().isModified());
+    }
+
+    @Test
+    public void editsTheSelectedMapCells() throws Exception {
+        DataCell[][] data = map().get3dData();
+        select(data[1][0], data[2][2]);
+        map().increment(1);
+        assertEquals(100, data[1][0].getBinValue(), 0);
+        assertEquals(9, data[2][2].getBinValue(), 0);
+        map().multiply(2);
+        assertEquals(200, data[1][0].getBinValue(), 0);
+        assertEquals(18, data[2][2].getBinValue(), 0);
+        assertEquals(0, data[0][0].getBinValue(), 0);
+
+        // A value typed in goes to the selected axis cells too
+        select(map().getXAxis().getData()[1]);
+        map().setRealValue("15");
+        assertEquals(15, data[1][0].getBinValue(), 0);
+        assertEquals(15, map().getXAxis().getData()[1].getBinValue(), 0);
+        assertEquals(15, bin[0x56 + 8]);
+    }
+
+    @Test
+    public void interpolatesASelectedAxisByIndex() throws Exception {
+        DataCell[] rpm = curve().getAxis().getData();
+        select(rpm);
+        curve().horizontalInterpolate();
+        // What is shown is what gets saved
+        assertValues(new double[] {0, 13, 27, 40}, rpm);
+        assertEquals(13, bin[0x41]);
+        assertEquals(27, bin[0x42]);
+    }
+
+    @Test
+    public void switchingTheScaleConvertsDataAndScaledAxes() throws Exception {
+        String scales = "<scaling category=\"Metric\" units=\"kPa\" expression=\"x\" to_byte=\"x\" format=\"#\"/>"
+                + "<scaling category=\"Standard\" units=\"psi\" expression=\"x*0.145\" to_byte=\"x/0.145\" format=\"0.0\"/>";
+        Rom scaled = RomFixture.load(RomFixture.rom("SCALE", 128,
+                "<table name=\"Map\" type=\"3D\" storageaddress=\"0x56\" storagetype=\"uint8\" sizex=\"3\" sizey=\"3\">"
+                + scales + "<table type=\"X Axis\" name=\"Rpm\" storageaddress=\"0x50\" storagetype=\"uint8\">" + X
+                + "</table><table type=\"Y Axis\" name=\"Boost\" storageaddress=\"0x53\" storagetype=\"uint8\">" + scales
+                + "</table></table>"
+                + "<table name=\"Curve\" type=\"2D\" storageaddress=\"0x44\" storagetype=\"uint8\" sizey=\"4\">" + scales
+                + "<table type=\"Y Axis\" name=\"Boost\" storageaddress=\"0x40\" storagetype=\"uint8\">" + scales
+                + "</table></table>"), bin);
+        Table2D curve = (Table2D) scaled.getTableByName("Curve");
+        curve.setScaleByCategory("Standard");
+        assertEquals(4.35, curve.getData()[2].getRealValue(), 1e-9);
+        assertEquals(5.8, curve.getAxis().getData()[3].getRealValue(), 1e-9);
+
+        Table3D map = (Table3D) scaled.getTableByName("Map");
+        assertEquals("kPa", map.getCurrentScale().getUnit());
+
+        map.setScaleByCategory("Standard");
+        assertEquals(14.355, map.get3dData()[1][0].getRealValue(), 1e-9);
+        assertEquals(14.5, map.getYAxis().getData()[1].getRealValue(), 1e-9);
+        assertEquals(10, map.getXAxis().getData()[1].getRealValue(), 0);
+
+        select(map.get3dData()[0][0]);
+        map.setRealValue("29");
+        assertEquals(200, map.get3dData()[0][0].getBinValue(), 0);
     }
 
     @Test
@@ -191,6 +262,26 @@ public class TableEditTest {
 
         curve().undoAll();
         assertFalse(curve().isModified());
+        rom.refreshDisplayedTables(null, false);
+        assertEquals(2, rom.getChildCount());
+    }
+
+    @Test
+    public void treeFiltersByNameAndHidesTablesAboveTheUserLevel() {
+        assertEquals(1, rom.refreshDisplayedTables("CUR", false).size());
+        assertEquals(1, rom.getChildCount());
+        assertEquals("Fuel", rom.getChildAt(0).toString());
+
+        rom.refreshDisplayedTables("nothing", false);
+        assertEquals(1, rom.getChildCount());
+        assertEquals(0, rom.getChildAt(0).getChildCount());
+
+        map().setUserLevel(2);
+        Settings settings = SettingsManager.getSettings();
+        settings.setDisplayHighTables(false);
+        rom.refreshDisplayedTables(null, false);
+        assertEquals(1, rom.getChildCount());
+        settings.setUserLevel(2);
         rom.refreshDisplayedTables(null, false);
         assertEquals(2, rom.getChildCount());
     }
