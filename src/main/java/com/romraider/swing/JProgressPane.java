@@ -38,6 +38,7 @@ public class JProgressPane extends JPanel implements PropertyChangeListener{
     private static final ResourceBundle rb = new ResourceUtil().getBundle(
             JProgressPane.class.getName());
     JLabel label = new JLabel();
+    private final JLabel emulatorLabel = new JLabel();
     JProgressBar progressBar = new JProgressBar(JProgressBar.HORIZONTAL, 0, 100);
     String status = "ready";
     int percent = 0;
@@ -55,7 +56,14 @@ public class JProgressPane extends JPanel implements PropertyChangeListener{
 
         this.add(progressBar, BorderLayout.WEST);
         this.add(label, BorderLayout.CENTER);
+        emulatorLabel.setFont(label.getFont());
+        this.add(emulatorLabel, BorderLayout.EAST);
 
+    }
+
+    // The ROM emulator's state, kept apart from the changing status text
+    public void setEmulatorStatus(String status) {
+        emulatorLabel.setText(status.isEmpty() ? "" : status + " ");
     }
 
     public void update(String status, int percent) {

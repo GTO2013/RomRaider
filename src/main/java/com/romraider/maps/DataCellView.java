@@ -67,7 +67,14 @@ public class DataCellView extends JLabel implements MouseListener, Serializable 
     private static final Border DECREASE_BORDER = createLineBorder(getSettings().getDecreaseBorder(), 2);
     private static final Border CURLIVE_BORDER = createLineBorder(getSettings().getCurLiveValueColor(), 2);
     private static final Border STALELIVE_BORDER = createLineBorder(getSettings().getliveValueColor(), 2);
-    
+    // Emulator address hits, from fading to fresh
+    private static final Border[] HIT_BORDERS = {
+        createLineBorder(new Color(0, 160, 255, 90), 2),
+        createLineBorder(new Color(0, 160, 255, 160), 3),
+        createLineBorder(new Color(0, 160, 255), 3),
+    };
+    private int hitLevel = -1;
+
     
     public DataCellView(DataCell cell, TableView view) {
         this.dataCell = cell;
@@ -255,6 +262,8 @@ public class DataCellView extends JLabel implements MouseListener, Serializable 
             if(tracedStale) {
                 border = STALELIVE_BORDER;
             }
+        } else if (hitLevel >= 0) {
+            border = HIT_BORDERS[hitLevel];
         } else {
             double checkValue;
 
@@ -365,6 +374,17 @@ public class DataCellView extends JLabel implements MouseListener, Serializable 
     public void setLiveDataTrace(boolean trace) {
         if(traced != trace) {
             traced = trace;
+            drawCell();
+        }
+    }
+
+    // How long ago an emulator saw the ECU read this cell, from 0 (just now)
+    // to 1 (too long to show); outside that range the mark is cleared
+    public void setHit(double age) {
+        int level = age < 0 || age >= 1 ? -1
+                : Math.min(HIT_BORDERS.length - 1, (int) ((1 - age) * HIT_BORDERS.length));
+        if (hitLevel != level) {
+            hitLevel = level;
             drawCell();
         }
     }

@@ -52,6 +52,7 @@ import javax.swing.JSeparator;
 
 import com.romraider.Settings;
 import com.romraider.editor.ecu.ECUEditor;
+import com.romraider.emulator.EmulatorMenu;
 import com.romraider.editor.ecu.ECUEditorManager;
 import com.romraider.dataflowSimulation.DataflowSimulation;
 import com.romraider.maps.Rom;
@@ -254,6 +255,8 @@ public class ECUEditorMenuBar extends JMenuBar implements ActionListener {
 		loggerMenu.add(openLogger);
 		openLogger.addActionListener(this);
 		openLogger.setMnemonic('O');
+
+		add(new EmulatorMenu());
 
 		// ramtune menu items
 		add(toolMenu);

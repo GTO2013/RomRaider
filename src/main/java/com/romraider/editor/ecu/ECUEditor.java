@@ -75,6 +75,7 @@ import javax.swing.tree.TreePath;
 
 import com.romraider.ECUExec;
 import com.romraider.Settings;
+import com.romraider.emulator.EmulatorController;
 import com.romraider.logger.ecu.EcuLogger;
 import com.romraider.maps.Rom;
 import com.romraider.maps.Table;
@@ -302,6 +303,9 @@ public class ECUEditor extends AbstractFrame {
     }
 
     public void handleExit() {
+        // Sends edits still pending and frees the port
+        EmulatorController.getInstance().disconnect();
+
         settings.setSplitPaneLocation(splitPane.getDividerLocation());
         settings.setWindowMaximized(getExtendedState() == MAXIMIZED_BOTH);
         settings.setWindowSize(getSize());

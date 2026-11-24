@@ -623,12 +623,18 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
         return correctChecksums;
     }
 
-    public int updateChecksum() {
+    // Brings the checksums up to date without a status message, returns how many changed
+    public int updateChecksumsQuietly() {
         int updatedCs = 0;
 
         for(ChecksumManager cm: checksumManagers) {
             updatedCs += cm.update(binData);
         }
+        return updatedCs;
+    }
+
+    public int updateChecksum() {
+        int updatedCs = updateChecksumsQuietly();
 
         if (ECUEditorManager.getECUEditorWithoutCreation() != null) {
             ECUEditorManager.getECUEditor().getStatusPanel().setStatus(

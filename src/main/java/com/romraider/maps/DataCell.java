@@ -397,6 +397,10 @@ public class DataCell implements Serializable  {
         view = v;
     }
 
+    public DataCellView getDataView() {
+        return view;
+    }
+
     public int getIndexInTable() {
         return index;
     }
