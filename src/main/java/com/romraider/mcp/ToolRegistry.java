@@ -38,6 +38,7 @@ final class ToolRegistry {
         TableTools.register(registry);
         DefinitionTools.register(registry);
         BinaryTools.register(registry);
+        EmulatorTools.register(registry);
         return registry;
     }
 
