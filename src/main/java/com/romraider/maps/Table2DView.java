@@ -21,7 +21,6 @@ package com.romraider.maps;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.KeyListener;
-import java.util.StringTokenizer;
 
 import javax.swing.JLabel;
 import javax.swing.border.EmptyBorder;
@@ -212,43 +211,12 @@ public class Table2DView extends TableView {
     }
 
     @Override
-    public void copySelection() {
-        super.copySelection();
-        axis.copySelection();
-    }
-
-    @Override
     public void copyTable() {
         String tableHeader = TableView.getSettings().getTable2DHeader();
         StringBuffer output = new StringBuffer(tableHeader);
         output.append(table.getTableAsString());
 
         setClipboard(output.toString());
-    }
-
-    @Override
-    public void paste(String s) throws UserLevelException {
-        StringTokenizer st = new StringTokenizer(s, Table.ST_DELIMITER);
-        String pasteType = st.nextToken();
-
-        if (pasteType.equalsIgnoreCase("[Table2D]")) { // Paste table
-            String currentToken = st.nextToken(Settings.NEW_LINE);
-            if (currentToken.endsWith("\t")) {
-                currentToken = st.nextToken(Settings.NEW_LINE);
-            }
-
-            String axisValues = "[Table1D]" + Settings.NEW_LINE + currentToken;
-            String dataValues = "[Table1D]" + Settings.NEW_LINE + st.nextToken(Settings.NEW_LINE);
-
-            axis.paste(axisValues);
-            super.paste(dataValues);
-        } else if (pasteType.equalsIgnoreCase("[Selection1D]")) { // paste selection
-            if (data[highlightBeginY].isSelected()) {
-                super.paste(s);
-            } else {
-                axis.paste(s);
-            }
-        }
     }
 
     @Override

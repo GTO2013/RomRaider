@@ -83,6 +83,9 @@ public class Settings implements Serializable {
     public static final String TABLE_ICONS_ELEMENT_NAME = "table-toolbar";
     public static final String TABLE_ICONS_SCALE_ATTRIBUTE_NAME = "scale";
 
+    public static final String MCP_ELEMENT_NAME = "mcp";
+    public static final int DEFAULT_MCP_PORT = 23273;
+
     /* UI Settings */
     public static final int DEFAULT_EDITOR_ICON_SCALE = 50;
     public static final int DEFAULT_TABLE_ICON_SCALE = 70;
@@ -254,6 +257,9 @@ public class Settings implements Serializable {
     private boolean scaleHeadersAndData = true;
 
     private String defaultScale = "Metric";
+
+    private boolean mcpEnabled = false;
+    private int mcpPort = DEFAULT_MCP_PORT;
 
     private Map<String, IntfKitSensor> phidgetSensors;
 
@@ -998,5 +1004,21 @@ public class Settings implements Serializable {
 
     public boolean isTableTreeSorted() {
         return this.sortTableTree;
+    }
+
+    public boolean isMcpEnabled() {
+        return mcpEnabled;
+    }
+
+    public void setMcpEnabled(boolean mcpEnabled) {
+        this.mcpEnabled = mcpEnabled;
+    }
+
+    public int getMcpPort() {
+        return mcpPort;
+    }
+
+    public void setMcpPort(int mcpPort) {
+        this.mcpPort = mcpPort;
     }
 }

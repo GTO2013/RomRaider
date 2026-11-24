@@ -70,6 +70,7 @@ public final class DOMRomUnmarshaller {
         Rom rom = new Rom(new RomID());
         rom.setDefinitionPath(definition);
         Rom output = unmarshallRom(romNode, rom);
+        output.setRomNode(romNode);
 
         //Set ram offset
         output.getRomID().setRamOffset(
@@ -144,7 +145,7 @@ public final class DOMRomUnmarshaller {
         NodeList nodes = rootNode.getChildNodes();
         tableScaleHandler.filterFoundRomTables(nodes);
 
-        progress.update(MessageFormat.format(rb.getString("CREATETABLES"),
+        if (progress != null) progress.update(MessageFormat.format(rb.getString("CREATETABLES"),
                 rom.getRomID().getXmlid()), 0);
 
         if (!unmarshallAttribute(rootNode, "base", "none").equalsIgnoreCase(
@@ -159,7 +160,7 @@ public final class DOMRomUnmarshaller {
 
             // update progress
             int currProgress = (int) (i / (double) nodes.getLength() * 100);
-            progress.update(MessageFormat.format(rb.getString("CREATETABLES"),
+            if (progress != null) progress.update(MessageFormat.format(rb.getString("CREATETABLES"),
                     rom.getRomID().getXmlid()), currProgress);
 
             if (n.getNodeType() == ELEMENT_NODE) {

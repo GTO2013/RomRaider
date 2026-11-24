@@ -25,6 +25,9 @@ import static javax.swing.JOptionPane.showMessageDialog;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.text.MessageFormat;
@@ -49,6 +52,7 @@ import javax.swing.border.TitledBorder;
 import com.romraider.Settings;
 import com.romraider.editor.ecu.ECUEditor;
 import com.romraider.editor.ecu.ECUEditorManager;
+import com.romraider.mcp.McpServer;
 import com.romraider.util.ResourceUtil;
 import com.romraider.util.SettingsManager;
 
@@ -159,6 +163,10 @@ public class SettingsForm extends JFrame implements MouseListener {
         }
 
         cbScaleHeaderAndData.setSelected(settings.isScaleHeadersAndData());
+
+        mcpEnabled.setSelected(settings.isMcpEnabled());
+        mcpPort.setText(String.valueOf(settings.getMcpPort()));
+        refreshMcpStatus();
     }
 
     // <editor-fold defaultstate="collapsed" desc=" Generated Code ">//GEN-BEGIN:initComponents
@@ -457,6 +465,7 @@ public class SettingsForm extends JFrame implements MouseListener {
         settingsTabbedPane.addTab(rb.getString("TABCLIP"), jPanelClipboard);
         settingsTabbedPane.addTab(rb.getString("TABICON"), jPanelIcons);
         settingsTabbedPane.addTab(rb.getString("TABSCAL"), jPanelScale);
+        settingsTabbedPane.addTab(rb.getString("TABMCP"), initMcpTab());
 
         this.cbScaleHeaderAndData = new JCheckBox(rb.getString("SCLHEADER"));
         this.cbScaleHeaderAndData.setToolTipText(rb.getString("SCLHEADERTT"));
@@ -527,6 +536,49 @@ public class SettingsForm extends JFrame implements MouseListener {
         getContentPane().setLayout(layout);
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private JPanel initMcpTab() {
+        mcpEnabled = new JCheckBox(rb.getString("MCPENABLE"));
+        mcpPort = new JTextField(6);
+        mcpStatus = new JLabel();
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        c.anchor = GridBagConstraints.WEST;
+        c.insets = new Insets(4, 8, 4, 8);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridwidth = 2;
+        panel.add(mcpEnabled, c);
+
+        c.gridy = 1;
+        c.gridwidth = 1;
+        panel.add(new JLabel(rb.getString("MCPPORT")), c);
+        c.gridx = 1;
+        panel.add(mcpPort, c);
+
+        c.gridx = 0;
+        c.gridy = 2;
+        c.gridwidth = 2;
+        panel.add(mcpStatus, c);
+
+        c.gridy = 3;
+        c.weightx = 1;
+        c.weighty = 1;
+        panel.add(new JPanel(), c);
+        return panel;
+    }
+
+    private void refreshMcpStatus() {
+        McpServer server = McpServer.getInstance();
+        if (server.isRunning()) {
+            mcpStatus.setText(MessageFormat.format(rb.getString("MCPRUNNING"), server.getUrl()));
+        } else if (server.getLastError() != null) {
+            mcpStatus.setText(MessageFormat.format(rb.getString("MCPFAILED"), server.getLastError()));
+        } else {
+            mcpStatus.setText(rb.getString("MCPSTOPPED"));
+        }
+    }
 
     private void initTabs() {
 
@@ -1034,6 +1086,16 @@ public class SettingsForm extends JFrame implements MouseListener {
         }
 
         getSettings().setDefaultScale(comboBoxDefaultScale.getSelectedItem().toString());
+
+        try {
+            getSettings().setMcpPort(Integer.parseInt(mcpPort.getText().trim()));
+        } catch (NumberFormatException ex) {
+            // Number formatted incorrectly reset.
+            mcpPort.setText(String.valueOf(getSettings().getMcpPort()));
+        }
+        getSettings().setMcpEnabled(mcpEnabled.isSelected());
+        McpServer.getInstance().applySettings(getSettings());
+        refreshMcpStatus();
     }
 
     private Settings getSettings()
@@ -1150,4 +1212,7 @@ public class SettingsForm extends JFrame implements MouseListener {
     private javax.swing.JCheckBox localeFormatCheckBox;
     private String oldLocale;
     private javax.swing.JCheckBox chckbxSortTree;
+    private JCheckBox mcpEnabled;
+    private JTextField mcpPort;
+    private JLabel mcpStatus;
 }

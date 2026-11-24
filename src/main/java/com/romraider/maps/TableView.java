@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
-import java.util.StringTokenizer;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -50,6 +49,7 @@ import com.romraider.Settings;
 import com.romraider.editor.ecu.ECUEditorManager;
 import com.romraider.swing.TableFrame;
 import com.romraider.swing.TableToolBar;
+import com.romraider.util.Interaction;
 import com.romraider.util.NumberUtil;
 import com.romraider.util.ResourceUtil;
 import com.romraider.util.SettingsManager;
@@ -692,40 +692,9 @@ public abstract class TableView extends JPanel implements Serializable {
     }
 
     public void copySelection() {
-        StringBuilder output =  new StringBuilder("[Selection1D]" + Settings.NEW_LINE);
-
-        boolean copy = false;
-        int[] coords = new int[2];
-        coords[0] = table.getDataSize();
-
-        for (int i = 0; i < table.getDataSize(); i++) {
-            if (getData()[i].isSelected()) {
-                if (i < coords[0]) {
-                    coords[0] = i;
-                    copy = true;
-                }
-                if (i > coords[1]) {
-                    coords[1] = i;
-                    copy = true;
-                }
-            }
-        }
-
-        //Make a string of the selection
-        for (int i = coords[0]; i <= coords[1]; i++) {
-            if (getData()[i].isSelected()) {
-                output.append(NumberUtil.stringValue(table.getData()[i].getRealValue()));
-            } else {
-            	output.append("x"); // x represents non-selected cell
-            }
-            if (i < coords[1]) {
-            	output.append("\t");
-            }
-        }
-
-        //Copy to clipboard
-        if (copy) {
-            setClipboard(output.toString());
+        String selection = table.copySelection();
+        if (selection != null) {
+            setClipboard(selection);
         }
     }
 
@@ -755,16 +724,6 @@ public abstract class TableView extends JPanel implements Serializable {
         return data[index].getText();
     }
 
-    public void pasteValues(String[] input) throws UserLevelException {
-        //set real values
-        for (int i = 0; i < input.length; i++) {
-            try {
-                Double.parseDouble(input[i]);
-                data[i].getDataCell().setRealValue(input[i]);
-            } catch (NumberFormatException ex) { /* not a number, do nothing */ }
-        }
-    }
-
     public void paste() throws UserLevelException {
     	String input;
 
@@ -780,40 +739,7 @@ public abstract class TableView extends JPanel implements Serializable {
     }
 
     public void paste(String s) throws UserLevelException {
-    	StringTokenizer st = new StringTokenizer(s, Table.ST_DELIMITER);
-
-        if (!table.isStaticDataTable()) {
-            String pasteType = st.nextToken();
-            boolean selectedOnly = false;
-            if ("[Selection1D]".equalsIgnoreCase(pasteType)) selectedOnly = true;
-
-            if ("[Table1D]".equalsIgnoreCase(pasteType) || "[Selection1D]".equalsIgnoreCase(pasteType)) {
-
-            	//Find the leftmost selected cell as start
-            	int startSelection = 0;
-            	for(int i=0; i < data.length;i++) {
-            		if(data[i].isSelected()) {
-            			startSelection=i;
-            			break;
-            		}
-            	}
-
-                if ((selectedOnly && data[startSelection].isSelected()) || !selectedOnly) {
-                    int i = 0;
-                    while (st.hasMoreTokens()) {
-                        String currentToken = st.nextToken();
-                        try {
-                            if (!data[startSelection + i].getText().equalsIgnoreCase(currentToken)) {
-                                data[startSelection + i].getDataCell().setRealValue(currentToken);
-                            }
-                        } catch (ArrayIndexOutOfBoundsException ex) {
-                        	break;
-                        }
-                        i++;
-                    }
-                }
-            }
-        }
+        table.paste(s);
     }
 
     public void setCompareDisplay(Settings.CompareDisplay compareDisplay) {
@@ -943,6 +869,9 @@ public abstract class TableView extends JPanel implements Serializable {
     }
 
     public static void showBadScalePopup(Table table, Scale scale) {
+        if (!Interaction.showDialog(MessageFormat.format(rb.getString("REALBYTEINVALID"), table.toString())
+                + " " + scale.getExpression() + " / " + scale.getByteExpression())) return;
+
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(4, 1));
         panel.add(new JLabel(MessageFormat.format(

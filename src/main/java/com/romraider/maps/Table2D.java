@@ -20,6 +20,8 @@
 package com.romraider.maps;
 
 import static com.romraider.util.ParamChecker.isNullOrEmpty;
+import java.util.List;
+import java.util.StringTokenizer;
 import javax.naming.NameNotFoundException;
 import com.romraider.Settings;
 import com.romraider.util.SettingsManager;
@@ -97,6 +99,13 @@ public class Table2D extends Table {
     @Override
     public boolean isModified() {
         return super.isModified() || axis.isModified();
+    }
+
+    @Override
+    public List<DataCell> getAllCells() {
+        List<DataCell> cells = super.getAllCells();
+        cells.addAll(axis.getAllCells());
+        return cells;
     }
 
     @Override
@@ -236,6 +245,37 @@ public class Table2D extends Table {
 		return linearInterpolation(input, axisData[start].getRealValue(), axisData[end].getRealValue(),
 				tableData[start].getRealValue(), tableData[end].getRealValue());
 	}
+
+    @Override
+    public String copySelection() {
+        String axisSelection = axis.copySelection();
+        return axisSelection != null ? axisSelection : super.copySelection();
+    }
+
+    @Override
+    public void paste(String s) throws UserLevelException {
+        StringTokenizer st = new StringTokenizer(s, ST_DELIMITER);
+        String pasteType = st.nextToken();
+
+        if (pasteType.equalsIgnoreCase("[Table2D]")) { // Paste table
+            String currentToken = st.nextToken(Settings.NEW_LINE);
+            if (currentToken.endsWith("\t")) {
+                currentToken = st.nextToken(Settings.NEW_LINE);
+            }
+
+            String axisValues = "[Table1D]" + Settings.NEW_LINE + currentToken;
+            String dataValues = "[Table1D]" + Settings.NEW_LINE + st.nextToken(Settings.NEW_LINE);
+
+            axis.paste(axisValues);
+            super.paste(dataValues);
+        } else if (pasteType.equalsIgnoreCase("[Selection1D]")) { // paste selection
+            if (super.copySelection() != null) { // data cells are selected
+                super.paste(s);
+            } else {
+                axis.paste(s);
+            }
+        }
+    }
 
     @Override
     public StringBuffer getTableAsString() {

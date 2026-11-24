@@ -25,7 +25,6 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.KeyListener;
 
-import java.util.StringTokenizer;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
@@ -34,7 +33,6 @@ import com.romraider.Settings;
 import com.romraider.editor.ecu.ECUEditorManager;
 import com.romraider.logger.ecu.ui.swing.vertical.VerticalLabelUI;
 import com.romraider.maps.Table1DView.Table1DType;
-import com.romraider.util.NumberUtil;
 
 public class Table3DView extends TableView {
 
@@ -397,146 +395,12 @@ public class Table3DView extends TableView {
     }
 
     @Override
-    public void copySelection() {
-    	// find bounds of selection
-        // coords[0] = x min, y min, x max, y max
-        boolean copy = false;
-        int[] coords = new int[4];
-        coords[0] = getTable().getSizeX();
-        coords[1] = getTable().getSizeY();
-
-        for (int x = 0; x < getTable().getSizeX(); x++) {
-            for (int y = 0; y < getTable().getSizeY(); y++) {
-                if (get3dData()[x][y].isSelected()) {
-                    if (x < coords[0]) {
-                        coords[0] = x;
-                        copy = true;
-                    }
-                    if (x > coords[2]) {
-                        coords[2] = x;
-                        copy = true;
-                    }
-                    if (y < coords[1]) {
-                        coords[1] = y;
-                        copy = true;
-                    }
-                    if (y > coords[3]) {
-                        coords[3] = y;
-                        copy = true;
-                    }
-                }
-            }
-        }
-        // make string of selection
-        if (copy) {
-            StringBuffer output = new StringBuffer("[Selection3D]" + Settings.NEW_LINE);
-            for (int y = coords[1]; y <= coords[3]; y++) {
-                for (int x = coords[0]; x <= coords[2]; x++) {
-                    if (get3dData()[x][y].isSelected()) {
-                        output.append(NumberUtil.stringValue(get3dData()[x][y].getDataCell().getRealValue()));
-                    } else {
-                        output.append("x"); // x represents non-selected cell
-                    }
-                    if (x < coords[2]) {
-                        output.append("\t");
-                    }
-                }
-                if (y < coords[3]) {
-                    output.append(Settings.NEW_LINE);
-                }
-                
-                setClipboard(String.valueOf(output));
-            }
-        } else {
-            getTable().getXAxis().getTableView().copySelection();
-            getTable().getYAxis().getTableView().copySelection();
-        }
-    }
-
-    @Override
     public void copyTable() {
         String tableHeader = TableView.getSettings().getTable3DHeader();
         StringBuffer output = new StringBuffer(tableHeader);
         output.append(getTable().getTableAsString());
         
         setClipboard(String.valueOf(output));
-    }
-
-    @Override
-    public void paste(String s) throws UserLevelException {        
-    	StringTokenizer st = new StringTokenizer(s, Table.ST_DELIMITER);
-        String pasteType = st.nextToken();
-
-        if ("[Table3D]".equalsIgnoreCase(pasteType)) { // Paste table
-            String currentToken = st.nextToken(Settings.NEW_LINE);
-            if (currentToken.endsWith("\t")) {
-                currentToken = st.nextToken(Settings.NEW_LINE);
-            }
-            String xAxisValues = "[Table1D]" + Settings.NEW_LINE + currentToken;
-
-            // build y axis and data values
-            StringBuffer yAxisValues = new StringBuffer("[Table1D]" + Settings.NEW_LINE + st.nextToken("\t"));
-            StringBuffer dataValues = new StringBuffer("[Table3D]" + Settings.NEW_LINE + st.nextToken("\t") + st.nextToken(Settings.NEW_LINE));
-            while (st.hasMoreTokens()) {
-                yAxisValues.append("\t").append(st.nextToken("\t"));
-                dataValues.append(Settings.NEW_LINE).append(st.nextToken("\t")).append(st.nextToken(Settings.NEW_LINE));
-            }
-
-            xAxis.paste(xAxisValues);
-            yAxis.paste(String.valueOf(yAxisValues));           
-            pasteValues(String.valueOf(dataValues));
-            
-        } else if ("[Selection3D]".equalsIgnoreCase(pasteType)) { // paste selection
-            pasteValues(s);
-        } else if ("[Selection1D]".equalsIgnoreCase(pasteType)) { // paste selection
-            xAxis.paste();
-            yAxis.paste();
-        }
-    }
-
-    public void pasteValues(String s) throws UserLevelException {
-        StringTokenizer st = new StringTokenizer(s, Table.ST_DELIMITER);
-        String pasteType = st.nextToken();
-
-        // figure paste start cell
-        int startX = 0;
-        int startY = 0;
-        
-        // if pasting a table, startX and Y at 0, else find highlight
-        if ("[Selection3D]".equalsIgnoreCase(pasteType)) {
-        	boolean somethingSelected = false;
-        	
-            for (int x = getTable().getSizeX() - 1; x >=0 ; x--) {
-                for (int y = 0; y < getTable().getSizeY(); y++) {
-                	if(data[x][y].isSelected()) {
-                		startX = x;
-                		startY = y;
-                		somethingSelected = true;
-                		break;
-                	}
-                }
-            }
-            
-            if(!somethingSelected) return;
-        }
-        
-        // set values
-        for (int y = startY; st.hasMoreTokens() && y < table.getSizeY(); y++) {
-            String checkToken = st.nextToken(Settings.NEW_LINE);
-            if (y==startY && checkToken.endsWith("\t")) {
-                checkToken = st.nextToken(Settings.NEW_LINE);
-            }
-            StringTokenizer currentLine = new StringTokenizer(checkToken, Table.ST_DELIMITER);
-            for (int x = startX; currentLine.hasMoreTokens() && x < table.getSizeX(); x++) {
-                String currentToken = currentLine.nextToken();
-
-                try {
-                    if (!data[x][y].getText().equalsIgnoreCase(currentToken)) {
-                        data[x][y].getDataCell().setRealValue(currentToken);
-                    }
-                } catch (ArrayIndexOutOfBoundsException ex) { /* copied table is larger than current table*/ }
-            }
-        }
     }
 
     @Override

@@ -329,7 +329,7 @@ public class TableScaleUnmarshaller {
 
                 if (unmarshallAttribute(n, "omit", "false").equalsIgnoreCase(
                         "true")) {
-                    return;
+                    continue;
                 }
 
                 if (!tableNames.containsKey(name) && address >= 0) {

@@ -66,6 +66,7 @@ public final class DOMSettingsBuilder {
         settingsNode.appendChild(buildTableClipboardFormat(settings));
         progress.update(rb.getString("SAVEICON"), 85);
         settingsNode.appendChild(buildIcons(settings));
+        settingsNode.appendChild(buildMcp(settings));
 
         progress.update(rb.getString("WTOF"), 90);
 
@@ -484,6 +485,13 @@ public final class DOMSettingsBuilder {
         iconsSettings.appendChild(tableIconsScaleSettings);
 
         return iconsSettings;
+    }
+
+    private IIOMetadataNode buildMcp(Settings settings) {
+        IIOMetadataNode mcp = new IIOMetadataNode(Settings.MCP_ELEMENT_NAME);
+        mcp.setAttribute("enabled", String.valueOf(settings.isMcpEnabled()));
+        mcp.setAttribute("port", String.valueOf(settings.getMcpPort()));
+        return mcp;
     }
 
     private String validateAttr(String attr) {

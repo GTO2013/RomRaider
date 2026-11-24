@@ -37,6 +37,10 @@ public class PresetManager {
 		String name;
 		boolean isBitMask;
 		LinkedList<Integer> data;
+
+		public String getName() {
+			return name;
+		}
 	}
 
 	private int parseStringToInt(String s) {

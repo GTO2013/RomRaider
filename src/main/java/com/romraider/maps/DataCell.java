@@ -346,7 +346,7 @@ public class DataCell implements Serializable  {
 
     public static int getMemoryStartAddress(DataCell cell) {
         Table t = cell.getTable();
-        return t.getStorageAddress() + cell.getIndexInTable() * t.getStorageType() - t.getRamOffset();
+        return t.getStorageAddress() + cell.getIndexInTable() * t.getStorageByteLength() - t.getRamOffset();
     }
 
     public Settings getSettings()
@@ -448,25 +448,8 @@ public class DataCell implements Serializable  {
         // create parser
         input = input.replaceAll(DataCellView.REPLACE_TEXT, Settings.BLANK);
         try {
-            double result = 0.0;
             if (!"x".equalsIgnoreCase(input)) {
-            	
-            	// Optimization: If it has no scaling use the value directly
-            	if(table.getCurrentScale().getExpression().trim().equalsIgnoreCase("x"))
-				{
-					result = NumberUtil.doubleValue(input);
-				}       	
-            	else if (table.getCurrentScale().getByteExpression() == null) {
-                    result = table.getCurrentScale().approximateToByteFunction(NumberUtil.doubleValue(input), table.getStorageType(), table.isSignedData());
-                }
-                else {
-                    result = JEPUtil.evaluate(table.getCurrentScale().getByteExpression(), NumberUtil.doubleValue(input));
-                }
-
-                if (table.getStorageType() != Settings.STORAGE_TYPE_FLOAT) {
-                    result = (int) Math.round(result);
-                }
-
+                double result = toBinValue(NumberUtil.doubleValue(input));
                 if (binValue != result) {
                     this.setBinValue(result);
                 }
@@ -474,6 +457,26 @@ public class DataCell implements Serializable  {
         } catch (ParseException e) {
             // Do nothing.  input is null or not a valid number.
         }
+    }
+
+    // Converts a real value to the bin value of the current scale, before range clamping
+    public double toBinValue(double realValue) {
+        Scale scale = table.getCurrentScale();
+        double result;
+
+        // Optimization: If it has no scaling use the value directly
+        if (scale.getExpression().trim().equalsIgnoreCase("x")) {
+            result = realValue;
+        } else if (scale.getByteExpression() == null) {
+            result = scale.approximateToByteFunction(realValue, table.getStorageType(), table.isSignedData());
+        } else {
+            result = JEPUtil.evaluate(scale.getByteExpression(), realValue);
+        }
+
+        if (table.getStorageType() != Settings.STORAGE_TYPE_FLOAT) {
+            result = (int) Math.round(result);
+        }
+        return result;
     }
 
     public double getCompareValue() {
@@ -529,6 +532,7 @@ public class DataCell implements Serializable  {
 
     public void increment(double increment) throws UserLevelException {
         double oldValue = getRealValue();
+        double oldBinValue = binValue;
 
         if (table.getCurrentScale().getCoarseIncrement() < 0.0) {
             increment = 0.0 - increment;
@@ -555,8 +559,9 @@ public class DataCell implements Serializable  {
 
         //Make sure we always change something. If the defined increment is too small this triggers
         //TODO: This should use real values
+        // Only retry when rounding swallowed the step, a refused write would retry forever
         if (table.getStorageType() != Settings.STORAGE_TYPE_FLOAT &&
-                oldValue == getRealValue() &&
+                oldValue == getRealValue() && Math.round(incResult) == oldBinValue &&
                 ((increment > 0 && binValue < maxAllowedBin) || (increment < 0 && binValue > minAllowedBin))) {
             if (LOGGER.isDebugEnabled())
                 LOGGER.debug(maxAllowedBin + " " + binValue);

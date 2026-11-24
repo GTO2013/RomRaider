@@ -96,7 +96,7 @@ public class Scale implements Serializable {
     	}
     	
     	double error = 1;
-    	double lastError = 9999999;
+    	double bestError = Double.MAX_VALUE;
     	
     	int currentStep = (int) ((maxValue - minValue) / 2);
     	int stepSize = (int) (Math.pow(2, 8 * storageType) / 2);;
@@ -120,14 +120,16 @@ public class Scale implements Serializable {
     			error = minusError;
     		}
   		
-    		if(error < lastError)
+    		// Keep the best step seen, the search can end on a worse one
+    		if(error < bestError) {
+    			bestError = error;
     			output = currentStep;
-    		
+    		}
+
     		if(error < epsilon)
     			break;
-    		
+
 			stepSize/=2;
-			lastError = error;
     	}
     	
     	if(cachedValues.size() < maxCacheSize)
@@ -136,7 +138,7 @@ public class Scale implements Serializable {
     	}
     	
     	//System.out.println("Input: " + input + " from approx: " + JEPUtil.evaluate(getExpression(), output));
-    	return currentStep;
+    	return output;
     }
     
     public void setCategory(String category) {

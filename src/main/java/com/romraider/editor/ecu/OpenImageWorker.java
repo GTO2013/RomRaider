@@ -29,6 +29,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -46,6 +50,7 @@ import org.xml.sax.SAXParseException;
 import com.romraider.Settings;
 import com.romraider.maps.Rom;
 import com.romraider.swing.DefinitionFilter;
+import com.romraider.util.Interaction;
 import com.romraider.util.SettingsManager;
 import com.romraider.xml.DOMRomUnmarshaller;
 import com.romraider.xml.ConversionLayer.ConversionLayer;
@@ -54,12 +59,35 @@ import com.romraider.xml.ConversionLayer.ConversionLayerFactory;
 public class OpenImageWorker extends SwingWorker<Void, Void> {
     private static final Logger LOGGER = Logger.getLogger(OpenImageWorker.class);
     private final File inputFile;
+    private final File definition;
+    private final List<String> warnings;
+    private final CountDownLatch finished = new CountDownLatch(1);
     private Rom rom;
+    private Rom addedRom;
     private String finalStatus;
    
 
     public OpenImageWorker(File inputFile) {
+        this(inputFile, null, null);
+    }
+
+    /**
+     * @param definition the definition to match against, or null for the configured definitions
+     * @param warnings if not null, dialogs are suppressed and their messages collected here
+     */
+    public OpenImageWorker(File inputFile, File definition, List<String> warnings) {
         this.inputFile = inputFile;
+        this.definition = definition;
+        this.warnings = warnings;
+    }
+
+    /**
+     * Blocks until the rom has been added to the editor, must not be called on the EDT.
+     * @return the added rom, or null if it could not be opened or the timeout expired
+     */
+    public Rom waitForAddedRom(long timeoutMillis) throws InterruptedException {
+        finished.await(timeoutMillis, TimeUnit.MILLISECONDS);
+        return addedRom;
     }
     
     public Rom getRom()
@@ -201,6 +229,16 @@ public class OpenImageWorker extends SwingWorker<Void, Void> {
     protected Void doInBackground() throws Exception {
     	Thread.currentThread().setName("Open Image Thread");
 
+        Interaction.suppressDialogs(warnings);
+        try {
+            openImage();
+        } finally {
+            Interaction.restoreDialogs();
+        }
+        return null;
+    }
+
+    private void openImage() throws Exception {
         ECUEditor editor = ECUEditorManager.getECUEditor();
         Settings settings = SettingsManager.getSettings();
 
@@ -215,19 +253,21 @@ public class OpenImageWorker extends SwingWorker<Void, Void> {
         setProgress(10);
 
         boolean found = false;
+        List<File> definitions = definition != null
+                ? Collections.singletonList(definition) : settings.getEcuDefinitionFiles();
 
         // parse ecu definition files until result found
-        for (int i = 0; i < settings.getEcuDefinitionFiles().size(); i++) {
-        	File f = settings.getEcuDefinitionFiles().get(i);
+        for (int i = 0; i < definitions.size(); i++) {
+        	File f = definitions.get(i);
 
             if (!f.exists()) {
                 showMessageDialog(editor,
                         MessageFormat.format(
                                 ECUEditor.rb.getString("MISSINGMOVED"),
-                                settings.getEcuDefinitionFiles().get(i).getAbsolutePath()),
+                                definitions.get(i).getAbsolutePath()),
                         MessageFormat.format(
                                 ECUEditor.rb.getString("MISSINGFILE"),
-                                settings.getEcuDefinitionFiles().get(i).getName()),
+                                definitions.get(i).getName()),
                         ERROR_MESSAGE);
                 continue;
             }
@@ -253,11 +293,11 @@ public class OpenImageWorker extends SwingWorker<Void, Void> {
         if(!found) {
         	showNoDefinitionFoundPopup(input);
         }
-
-		return null;
     }
 
     private void showNoDefinitionFoundPopup(byte[] input) {
+        if (!Interaction.showDialog(ECUEditor.rb.getString("DEFNOTFOUND"))) return;
+
     	// no ECU definitions configured - let user choose one
         Object[] options = {ECUEditor.rb.getString("YES"), ECUEditor.rb.getString("NO")};
         int answer = showOptionDialog(null,
@@ -323,11 +363,22 @@ public class OpenImageWorker extends SwingWorker<Void, Void> {
 
     @Override
     public void done() {
+        Interaction.suppressDialogs(warnings);
+        try {
+            addRomToEditor();
+        } finally {
+            Interaction.restoreDialogs();
+            finished.countDown();
+        }
+    }
+
+    private void addRomToEditor() {
         ECUEditor editor = ECUEditorManager.getECUEditor();
 
         //Add the rom in the main thread
         if(rom != null) {
         	editor.addRom(rom);
+        	addedRom = rom;
         	rom = null;
 
 		    editor.getStatusPanel().update(finalStatus, 0);

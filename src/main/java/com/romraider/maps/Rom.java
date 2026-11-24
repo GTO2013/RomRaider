@@ -52,6 +52,7 @@ import javax.swing.tree.TreePath;
 
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 
 import com.romraider.Settings;
 import com.romraider.dataflowSimulation.DataflowSimulation;
@@ -62,6 +63,7 @@ import com.romraider.swing.CategoryTreeNode;
 import com.romraider.swing.JProgressPane;
 import com.romraider.swing.TableFrame;
 import com.romraider.swing.TableTreeNode;
+import com.romraider.util.Interaction;
 import com.romraider.util.ResourceUtil;
 import com.romraider.util.SettingsManager;
 
@@ -77,6 +79,7 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
     private File fullFileName = new File(".");
     private byte[] binData;
     private Document doc;
+    private transient Node romNode;
     
     // This is currently only used for unit testing
     // It could however be used to create a list of faulty tables instead
@@ -259,6 +262,7 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
                 " type " + table.getType() + " start " +
                 table.getStorageAddress() + " " + binData.length + " filesize", ex);
 
+        if (!Interaction.showDialog(MessageFormat.format(rb.getString("ADDROUTOFBNDS"), table.getName()))) return;
         JOptionPane.showMessageDialog(null,
                 MessageFormat.format(rb.getString("ADDROUTOFBNDS"), table.getName()),
                 rb.getString("ECUDEFERROR"), JOptionPane.ERROR_MESSAGE);
@@ -266,6 +270,7 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
 
     private void showNullExceptionPopup(Table table, Exception ex) {
         LOGGER.error("Error Populating Table", ex);
+        if (!Interaction.showDialog(MessageFormat.format(rb.getString("TABLELOADERR"), table.getName()))) return;
         JOptionPane.showMessageDialog(null,
                 MessageFormat.format(rb.getString("TABLELOADERR"), table.getName()),
                 rb.getString("ECUDEFERROR"), JOptionPane.ERROR_MESSAGE);
@@ -298,33 +303,17 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
         for(String name: tableNodes.keySet()) {
             // update progress
             int currProgress = (int) (i / (double) size * 100);
-            progress.update(rb.getString("POPTABLES"), currProgress);
+            if (progress != null) progress.update(rb.getString("POPTABLES"), currProgress);
 
             Table table = tableNodes.get(name.toLowerCase()).getTable();
-            try {
-                if (table.getStorageAddress() >= 0) {
-                    try {
-                        table.populateTable(this);
-                        TableUpdateHandler.getInstance().registerTable(table);
-
-                        if (null != table.getName() && table.getName().equalsIgnoreCase("Checksum Fix")){
-                            setEditStamp(binData, table.getStorageAddress() - table.getRamOffset());
-                        }
-                        i++;
-                    } catch (ArrayIndexOutOfBoundsException ex) {
-                    	handleException(table, ex, true);
-                        size--;
-                    } catch (IndexOutOfBoundsException iex) {
-                    	handleException(table, iex, true);
-                        size--;
-                    }
+            if (table.getStorageAddress() >= 0) {
+                if (populateTable(table)) {
+                    i++;
                 } else {
-                    tableNodes.remove(table.getName().toLowerCase());
                     size--;
                 }
-
-            } catch (NullPointerException ex) {
-            	handleException(table, ex, false);
+            } else {
+                tableNodes.remove(table.getName().toLowerCase());
                 size--;
             }
         }
@@ -332,6 +321,41 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
         for(String s: faultyTables) {
             tableNodes.remove(s.toLowerCase());
         }
+    }
+
+    /**
+     * Reads one table's cells from the binary.
+     * @return false if the table does not fit the binary, it is then listed in getFaultyTables()
+     */
+    public boolean populateTable(Table table) {
+        try {
+            table.populateTable(this);
+            TableUpdateHandler.getInstance().registerTable(table);
+
+            if (null != table.getName() && table.getName().equalsIgnoreCase("Checksum Fix")){
+                setEditStamp(binData, table.getStorageAddress() - table.getRamOffset());
+            }
+            return true;
+        } catch (IndexOutOfBoundsException ex) {
+            handleException(table, ex, true);
+        } catch (NullPointerException ex) {
+            handleException(table, ex, false);
+        }
+        return false;
+    }
+
+    // Stops a table from receiving byte level and live data updates
+    public void unregisterTable(Table table) {
+        TableUpdateHandler.getInstance().deregisterTable(table);
+        for (DataCell cell : table.getAllCells()) {
+            LinkedList<DataCell> cells = byteCellMapping.get(DataCell.getMemoryStartAddress(cell));
+            if (cells != null) cells.remove(cell);
+        }
+    }
+
+    public LinkedList<DataCell> getCellsAt(int fileOffset) {
+        LinkedList<DataCell> cells = byteCellMapping.get(fileOffset);
+        return cells == null ? new LinkedList<DataCell>() : cells;
     }
 
     private void setEditStamp(byte[] binData, int address) {
@@ -373,6 +397,15 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
     }
     public Document getDocument() {
         return this.doc;
+    }
+
+    // The <rom> element this rom was matched to, new tables go here
+    public Node getRomNode() {
+        return romNode;
+    }
+
+    public void setRomNode(Node romNode) {
+        this.romNode = romNode;
     }
 
     public void setDefinitionPath(File s) {
@@ -419,6 +452,7 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
     private void showChecksumFixPopup(TableTreeNode checksum) {
          Object[] options = {rb.getString("YES"), rb.getString("NO")};
          final String message = rb.getString("CHKSUMINVALID");
+         if (!Interaction.showDialog(message)) return;
 
          int answer = showOptionDialog(
                  SwingUtilities.windowForComponent(checksum.getTable().getTableView()),
@@ -579,7 +613,7 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
             }
         }
 
-        if(!valid) {
+        if(!valid && Interaction.showDialog(rb.getString("INVLAIDCHKSUM"))) {
             showMessageDialog(null,
                     rb.getString("INVLAIDCHKSUM"),
                     rb.getString("CHKSUMFAIL"),
@@ -596,8 +630,10 @@ public class Rom extends DefaultMutableTreeNode implements Serializable  {
             updatedCs += cm.update(binData);
         }
 
-        ECUEditorManager.getECUEditor().getStatusPanel().setStatus(
-                String.format(rb.getString("CHECKSUMFIXED"), updatedCs, getTotalAmountOfChecksums()));
+        if (ECUEditorManager.getECUEditorWithoutCreation() != null) {
+            ECUEditorManager.getECUEditor().getStatusPanel().setStatus(
+                    String.format(rb.getString("CHECKSUMFIXED"), updatedCs, getTotalAmountOfChecksums()));
+        }
 
         return updatedCs;
     }

@@ -61,8 +61,10 @@ public class SettingsManager {
         return settings;
     }
 
+    // Tests run on default settings, independent of the user's settings file, and never save them
     public static void setTesting(boolean b) {
     	testing = b;
+    	if (b) settings = new Settings();
     }
 
     public static boolean getTesting() {

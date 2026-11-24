@@ -105,6 +105,7 @@ import com.romraider.swing.RomTreeRootNode;
 import com.romraider.swing.TableFrame;
 import com.romraider.swing.TableToolBar;
 import com.romraider.swing.TableTreeNode;
+import com.romraider.util.Interaction;
 import com.romraider.util.ResourceUtil;
 import com.romraider.util.SettingsManager;
 import com.romraider.util.ThreadUtil;
@@ -402,7 +403,8 @@ public class ECUEditor extends AbstractFrame {
             setLastSelectedRom(input);
         }
 
-        if (input.getRomID().isObsolete() && settings.isObsoleteWarning()) {
+        if (input.getRomID().isObsolete() && settings.isObsoleteWarning()
+                && Interaction.showDialog(rb.getString("OBSOLETEROM"))) {
             JPanel infoPanel = new JPanel();
             infoPanel.setLayout(new GridLayout(3, 1));
             infoPanel.add(new JLabel(rb.getString("OBSOLETEROM")));
@@ -496,10 +498,12 @@ public class ECUEditor extends AbstractFrame {
                     rb.getString("POPULATEFAIL"), t.getName(),
                     e.toString());
             final Exception ex = new Exception(msg);
-            showMessageDialog(this,
-                    new DebugPanel(ex, settings.getSupportURL()),
-                    rb.getString("EXCEPTION"),
-                    ERROR_MESSAGE);
+            if (Interaction.showDialog(msg)) {
+                showMessageDialog(this,
+                        new DebugPanel(ex, settings.getSupportURL()),
+                        rb.getString("EXCEPTION"),
+                        ERROR_MESSAGE);
+            }
         }
     	
     }

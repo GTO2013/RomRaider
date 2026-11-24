@@ -46,7 +46,9 @@ import org.apache.log4j.Logger;
 import com.romraider.editor.ecu.ECUEditor;
 import com.romraider.editor.ecu.ECUEditorManager;
 import com.romraider.logger.ecu.EcuLogger;
+import com.romraider.mcp.McpServer;
 import com.romraider.util.ResourceUtil;
+import com.romraider.util.SettingsManager;
 
 public class ECUExec {
     private static final Logger LOGGER = getLogger(ECUExec.class);
@@ -146,6 +148,8 @@ public class ECUExec {
         if (args.length > 0) {
             editor.openImage(args[0]);
         }
+
+        McpServer.getInstance().applySettings(SettingsManager.getSettings());
     }
 
     private static void startExecCommunication() {

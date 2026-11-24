@@ -24,6 +24,7 @@ import static com.romraider.swing.LookAndFeelManager.initLookAndFeel;
 import static com.romraider.util.LogManager.initDebugLogging;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.util.Collection;
@@ -60,6 +61,11 @@ public class XDFConversionLayerTest{
 
     @Test
     public void loadXDFs() {
+        // https://github.com/dmacpro91/BMW-XDFs
+        // Download locally and unzip
+        File folder = new File("C:\\Users\\User\\Downloads\\BMW-XDFs-master\\");
+        assumeTrue(folder.isDirectory());
+
         initDebugLogging();
         initLookAndFeel();
         ECUEditor editor = getECUEditor();
@@ -70,9 +76,6 @@ public class XDFConversionLayerTest{
         SettingsManager.setTesting(true);
         Settings settings = SettingsManager.getSettings();
 
-        // https://github.com/dmacpro91/BMW-XDFs
-        // Download locally and unzip
-        File folder = new File("C:\\Users\\User\\Downloads\\BMW-XDFs-master\\");
         Collection<File> listOfFiles = listFileTree(folder);
         for (File f: listOfFiles) {
             ConversionLayer l = new XDFConversionLayer();

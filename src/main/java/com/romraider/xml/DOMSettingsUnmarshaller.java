@@ -66,6 +66,13 @@ public final class DOMSettingsUnmarshaller {
                 settings = this.unmarshallClipboardFormat(n, settings);
             } else if (n.getNodeType() == ELEMENT_NODE && n.getNodeName().equalsIgnoreCase(Settings.ICONS_ELEMENT_NAME)) {
                 settings = this.unmarshallIcons(n, settings);
+            } else if (n.getNodeType() == ELEMENT_NODE && n.getNodeName().equalsIgnoreCase(Settings.MCP_ELEMENT_NAME)) {
+                settings.setMcpEnabled(Boolean.parseBoolean(unmarshallAttribute(n, "enabled", "false")));
+                try {
+                    settings.setMcpPort(unmarshallAttribute(n, "port", Settings.DEFAULT_MCP_PORT));
+                } catch (NumberFormatException ex) {
+                    settings.setMcpPort(Settings.DEFAULT_MCP_PORT);
+                }
             }
         }
         return settings;

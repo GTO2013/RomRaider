@@ -20,6 +20,10 @@
 package com.romraider.maps;
 
 import java.io.Serializable;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 import javax.naming.NameNotFoundException;
@@ -78,6 +82,7 @@ public abstract class Table implements Serializable, Comparable<Table> {
     protected boolean staticDataTable = false;
 
     protected int modifiedCells = 0;
+    private boolean definitionChanged = false;
     private Table compareTable = null;
     protected Settings.DataType compareValueType = Settings.DataType.BIN;
 
@@ -104,6 +109,17 @@ public abstract class Table implements Serializable, Comparable<Table> {
 
     public DataCell[] getData() {
         return data;
+    }
+
+    // Cells of the table and its axes
+    public List<DataCell> getAllCells() {
+        List<DataCell> cells = new ArrayList<DataCell>();
+        if (data != null) {
+            for (DataCell cell : data) {
+                if (cell != null) cells.add(cell);
+            }
+        }
+        return cells;
     }
 
     public void addStaticDataCell(String s) {
@@ -260,6 +276,12 @@ public abstract class Table implements Serializable, Comparable<Table> {
         this.storageType = storageType;
     }
 
+    public int getStorageByteLength() {
+        if (storageType == Settings.STORAGE_TYPE_FLOAT) return 4;
+        if (storageType == Settings.STORAGE_TYPE_MOVI20 || storageType == Settings.STORAGE_TYPE_MOVI20S) return 3;
+        return storageType;
+    }
+
     public boolean isSignedData() {
         return signed;
     }
@@ -329,6 +351,84 @@ public abstract class Table implements Serializable, Comparable<Table> {
 
     public String getName() {
         return name;
+    }
+
+    // Clipboard text of the selection, x marks unselected cells inside it, null if nothing is selected
+    public String copySelection() {
+        StringBuilder output =  new StringBuilder("[Selection1D]" + Settings.NEW_LINE);
+
+        boolean copy = false;
+        int[] coords = new int[2];
+        coords[0] = getDataSize();
+
+        for (int i = 0; i < getDataSize(); i++) {
+            if (data[i].isSelected()) {
+                if (i < coords[0]) {
+                    coords[0] = i;
+                    copy = true;
+                }
+                if (i > coords[1]) {
+                    coords[1] = i;
+                    copy = true;
+                }
+            }
+        }
+        if (!copy) return null;
+
+        //Make a string of the selection
+        for (int i = coords[0]; i <= coords[1]; i++) {
+            if (data[i].isSelected()) {
+                output.append(NumberUtil.stringValue(data[i].getRealValue()));
+            } else {
+            	output.append("x"); // x represents non-selected cell
+            }
+            if (i < coords[1]) {
+            	output.append("\t");
+            }
+        }
+        return output.toString();
+    }
+
+    public void paste(String s) throws UserLevelException {
+    	StringTokenizer st = new StringTokenizer(s, ST_DELIMITER);
+
+        if (!isStaticDataTable()) {
+            String pasteType = st.nextToken();
+            boolean selectedOnly = false;
+            if ("[Selection1D]".equalsIgnoreCase(pasteType)) selectedOnly = true;
+
+            if ("[Table1D]".equalsIgnoreCase(pasteType) || "[Selection1D]".equalsIgnoreCase(pasteType)) {
+
+            	//Find the leftmost selected cell as start
+            	int startSelection = 0;
+            	for(int i=0; i < data.length;i++) {
+            		if(data[i].isSelected()) {
+            			startSelection=i;
+            			break;
+            		}
+            	}
+
+                if ((selectedOnly && data[startSelection].isSelected()) || !selectedOnly) {
+                    int i = 0;
+                    while (st.hasMoreTokens()) {
+                        String currentToken = st.nextToken();
+                        try {
+                            if (!isShownAs(data[startSelection + i], currentToken)) {
+                                data[startSelection + i].setRealValue(currentToken);
+                            }
+                        } catch (ArrayIndexOutOfBoundsException ex) {
+                        	break;
+                        }
+                        i++;
+                    }
+                }
+            }
+        }
+    }
+
+    // True if the cell already displays this text, rewriting it could change the value by rounding
+    protected boolean isShownAs(DataCell cell, String text) {
+        return new DecimalFormat(getCurrentScale().getFormat()).format(cell.getRealValue()).equalsIgnoreCase(text);
     }
 
     public StringBuffer getTableAsString() {
@@ -494,15 +594,24 @@ public abstract class Table implements Serializable, Comparable<Table> {
         }
     }
 
-    // Values differ from the load or revert point
+    // Values differ from the load or revert point, or the definition was edited live
     public boolean isModified() {
-        return modifiedCells > 0;
+        return modifiedCells > 0 || definitionChanged;
+    }
+
+    public void setDefinitionChanged(boolean definitionChanged) {
+        this.definitionChanged = definitionChanged;
     }
 
     public void undoAll() throws UserLevelException {
         for (DataCell cell : data) {
             cell.undo();
         }
+    }
+
+    // Null if the table has no presets
+    public PresetManager getPresetManager() {
+        return presetManager;
     }
 
     //Don't check for duplicate names, just add
@@ -695,12 +804,12 @@ public abstract class Table implements Serializable, Comparable<Table> {
     }
 
     public void setUserLevel(int userLevel) {
-        this.userLevel = userLevel;
         if (userLevel > 5) {
             userLevel = 5;
         } else if (userLevel < 1) {
             userLevel = 1;
         }
+        this.userLevel = userLevel;
     }
 
     public void setScaleByCategory(String scaleName) throws NameNotFoundException {
